@@ -9,6 +9,11 @@ const app = express();
 // need change is ip address
 const mediaserver = new MediaServer('127.0.0.1');
 
+if (!mediaserver.getStream("test")) {
+   mediaserver.createStream("test", null, 5000);
+}
+
+
 
 app.use(bodyParser.json()); 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -24,6 +29,8 @@ app.use(function(req, res, next) {
   next();
 });
 
+
+
 app.get('/test', async (req, res) => {
     res.send('hello world')
 })
@@ -38,6 +45,8 @@ app.post('/watch/:stream', async (req, res) => {
     // // If we did handle the stream yet
     if (!mediaserver.getStream(stream)) {
         await mediaserver.createStream(stream, baseRtmpUrl + stream);
+    }else{
+        console.log("stream already done")
     }
 
     let answer = await mediaserver.offerStream(stream, offer);

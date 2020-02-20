@@ -28,7 +28,6 @@ let audioPort = null;
 
 const RTMP_TO_RTP = "gst-launch-1.0 -v  rtmpsrc location=rtmp://localhost/live/{stream} ! flvdemux ! h264parse ! rtph264pay config-interval=-1 pt={pt} !  udpsink host=127.0.0.1 port={port}"
 
-
 class MediaServer 
 {
     constructor(publicIp)
@@ -65,7 +64,7 @@ class MediaServer
 
     }
 
-    async createStream(streamName,rtmpUrl)
+    async createStream(streamName,rtmpUrl,rtp_video_port=null)
     {
 
         const videoStreamer = medoozeMediaServer.createStreamer();
@@ -78,11 +77,18 @@ class MediaServer
         video.addCodec(new CodecInfo(videoCodec,videoPt));
         audio.addCodec(new CodecInfo(audioCodec,audioPt));
 
+	let use_rtmp = !rtp_video_port;
 
-        if (!videoPort) {
+        if (use_rtmp) {
             videoPort = await this.getMediaPort();
             audioPort = await this.getMediaPort();
-        }
+        }else{
+            videoPort = rtp_video_port;
+	    audioPort = await this.getMediaPort();
+	}
+
+	console.log(videoPort)
+	console.log(audioPort)
 
 
         const videoSession = videoStreamer.createSession(video, {
@@ -106,23 +112,22 @@ class MediaServer
             audio:audioSession
         });
 
+	if(use_rtmp){
+	    let execute = null;
+            execute = format(RTMP_TO_RTP, {stream:streamName, pt: videoPt, port: videoPort}); // rtmp_to_rtp
+	    console.log('streamer ', execute);
 
-        let rtmp_to_rtp = format(RTMP_TO_RTP, {stream:streamName, pt: videoPt, port: videoPort});
 
-        console.log('rtmp_to_rtp ', rtmp_to_rtp);
+	    const gst = execa.shell(execute);
 
+	    gst.on('close', (code, signal) => {
+		console.log('gst close', code, signal)
+	    })
 
-        const gst = execa.shell(rtmp_to_rtp);
-
-        gst.on('close', (code, signal) => {
-
-            console.log('gst close', code, signal)
-        })
-
-        gst.on('exit', (code, signal) => {
-
-            console.log(code, signal)
-        })
+	    gst.on('exit', (code, signal) => {
+		console.log(code, signal)
+	    })
+	}
 
 	videoPort = null;
 	audioPort = null;
@@ -143,9 +148,9 @@ class MediaServer
     async offerStream(streamName, offerStr)
     {
         let offer = SDPInfo.process(offerStr);
-	console.log("OFFER");
-	console.log(offer);
-	console.log("OFFER");
+	//console.log("OFFER");
+	//console.log(offer);
+	//console.log("OFFER");
         const transport = this.endpoint.createTransport({
             dtls : offer.getDTLS(),
             ice : offer.getICE()
