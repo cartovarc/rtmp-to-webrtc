@@ -16,7 +16,7 @@ const CodecInfo		= SemanticSDP.CodecInfo;
 
 const videoPt = 96;
 const audioPt = 100;
-const videoCodec = 'h264'; 
+const videoCodec = 'h264';
 const audioCodec = 'opus';
 
 let videoPort = null;

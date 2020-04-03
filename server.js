@@ -9,12 +9,6 @@ const app = express();
 // need change is ip address
 const mediaserver = new MediaServer('127.0.0.1');
 
-if (!mediaserver.getStream("test")) {
-   mediaserver.createStream("test", null, 5000);
-}
-
-
-
 app.use(bodyParser.json()); 
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -54,6 +48,25 @@ app.post('/watch/:stream', async (req, res) => {
     res.json({answer:answer});
 })
 
+app.post('/create/:stream', async (req, res) => {
+
+    let stream = req.params.stream;
+    let offer = req.body.offer;
+    let rtp_port = await mediaserver.getMediaPort();
+
+    console.log("create stream with already rtp " + stream);
+
+    // // If we did handle the stream yet
+    if (!mediaserver.getStream(stream)) {
+        await mediaserver.createStream(stream, stream, rtp_port);
+    }else{
+	let alreadyCreatedStream = await mediaserver.getStream(stream)
+	rtp_port = alreadyCreatedStream.videoPort
+        console.log("stream already done")
+    }
+    res.json({rtp_port:rtp_port});
+})
+
 let port_server = process.env.npm_package_config_PortServer || 4001
 
 app.listen(port_server, function () {
@@ -68,8 +81,8 @@ const config = {
         port: portRTMP,
         chunk_size: 1024,
         gop_cache: true,
-        ping: 60,
-        ping_timeout: 30
+        ping: 30,
+        ping_timeout: 60
     }
 };
 
