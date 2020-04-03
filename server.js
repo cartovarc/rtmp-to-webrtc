@@ -9,7 +9,6 @@ const app = express();
 // need change is ip address
 const mediaserver = new MediaServer('127.0.0.1');
 
-
 app.use(bodyParser.json()); 
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -17,6 +16,14 @@ app.use(express.static('./'));
 
 
 const baseRtmpUrl = 'rtmp://127.0.0.1/live/';
+
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
+
 
 app.get('/test', async (req, res) => {
     res.send('hello world')
@@ -32,6 +39,8 @@ app.post('/watch/:stream', async (req, res) => {
     // // If we did handle the stream yet
     if (!mediaserver.getStream(stream)) {
         await mediaserver.createStream(stream, baseRtmpUrl + stream);
+    }else{
+        console.log("stream already done")
     }
 
     let answer = await mediaserver.offerStream(stream, offer);
@@ -39,18 +48,41 @@ app.post('/watch/:stream', async (req, res) => {
     res.json({answer:answer});
 })
 
-app.listen(4001, function () {
-    console.log('Example app listening on port 4001!\n');
-    console.log('Open http://localhost:4001/');
+app.post('/create/:stream', async (req, res) => {
+
+    let stream = req.params.stream;
+    let offer = req.body.offer;
+    let rtp_port = await mediaserver.getMediaPort();
+
+    console.log("create stream with already rtp " + stream);
+
+    // // If we did handle the stream yet
+    if (!mediaserver.getStream(stream)) {
+        await mediaserver.createStream(stream, stream, rtp_port);
+    }else{
+	let alreadyCreatedStream = await mediaserver.getStream(stream)
+	rtp_port = alreadyCreatedStream.videoPort
+        console.log("stream already done")
+    }
+    res.json({rtp_port:rtp_port});
 })
+
+let port_server = process.env.npm_package_config_PortServer || 4001
+
+app.listen(port_server, function () {
+    console.log('Example app listening on port ' + port_server);
+    console.log('Open http://localhost:' + port_server);
+})
+
+let portRTMP = process.env.npm_package_config_PortRTMP || 1935
 
 const config = {
     rtmp: {
-        port: 1935,
+        port: portRTMP,
         chunk_size: 1024,
         gop_cache: true,
-        ping: 60,
-        ping_timeout: 30
+        ping: 30,
+        ping_timeout: 60
     }
 };
 
