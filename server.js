@@ -9,7 +9,7 @@ const app = express();
 // need change is ip address
 const mediaserver = new MediaServer('127.0.0.1');
 
-app.use(bodyParser.json()); 
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(express.static('./'));

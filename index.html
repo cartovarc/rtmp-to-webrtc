@@ -11,23 +11,22 @@
 
 window.localStorage.setItem('debug', '*ERROR*');
 
-let streamName = 'test';
 let video_container = null;
-
 
 function init() {
 	video_container = document.getElementById('video_container');
 }
 
 
-function playStream() {
+function playStream(streamName) {
+
+    console.log(streamName)
 
     const pc = new RTCPeerConnection({
         bundlePolicy: "max-bundle",
         rtcpMuxPolicy : "require"
     });
 
-        
     pc.onaddstream = function(event) {
 
         console.debug('onaddstream');
@@ -46,7 +45,7 @@ function playStream() {
     })
     .then(function(offer) {
         console.debug("createOffer sucess",offer);
-        
+
         pc.setLocalDescription(offer);
 
         axios.post('/watch/' + streamName, {
@@ -107,18 +106,19 @@ function removeRemoteVideo() {
 </head>
 <body onload="init();">
     <h1> RTMP to WebRTC</h1>
-    
 	<br/>
 	<div id="conference">
 		<div>
-           <button onclick="playStream();">
+        <label for="fname">Stream name:</label>
+        <input type="text" id="stream_name">
+           <button onclick="playStream(document.getElementById('stream_name').value);">
                 playRTMPStream
             </button>
 			<span id="state_span">  </span>
 		</div>
 		Video:
 		<br />
-		<div id="video_container">
+		<div id="video_container" style="border: 1px;">
 
         </div>
 	</div>
